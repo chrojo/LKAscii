@@ -108,12 +108,15 @@ class AsciiHandler(BaseHTTPRequestHandler):
 
             for _ in range(loops):
                 for frame in frames:
-                    # No full clear each frame; just move cursor home and overwrite
-                    out = HOME + frame.encode("utf-8") + b"\n"
-                    self.wfile.write(out)
-                    self.wfile.flush()
+                    try:
+                        out = HOME + frame.encode("utf-8") + b"\n"
+                        self.wfile.write(out)
+                        self.wfile.flush()
+                    except (BrokenPipeError, ConnectionResetError):
+                        return  # client disconnected; stop streaming
                     time.sleep(delay)
         finally:
+            # exit cleanly; ignore errors if socket is already closed
             try:
                 self.wfile.write(SHOW_CURSOR + ALT_SCREEN_OFF)
                 self.wfile.flush()
